@@ -5,7 +5,6 @@ is.binary <- function(v) {
   else FALSE
 }
 
-
 ############## AF function for cross-sectional sampling design #####################
 #' @title Attributable fraction for cross-sectional sampling designs.
 #' @description \code{AF.cs} estimates the model-based adjusted attributable fraction for data from cross-sectional sampling designs.
@@ -28,14 +27,14 @@ is.binary <- function(v) {
 #' where \eqn{Pr(Y_0=1)}{Pr(Y0 = 1)} denotes the counterfactual probability of the outcome if
 #' the exposure would have been eliminated from the population and \eqn{Pr(Y = 1)} denotes the factual probability of the outcome.
 #' If \code{Z} is sufficient for confounding control, then \eqn{Pr(Y_0=1)}{Pr(Y0 = 1)} can be expressed as
-#'  \deqn{E_Z\{Pr(Y=1\mid{X=0,Z})\}.}{E_z{Pr(Y = 1  |X = 0,Z)}.}
+#'  \eqn{E_Z\{Pr(Y=1\mid{X=0,Z})\}.}{E_z{Pr(Y = 1  |X = 0,Z)}.}
 #' The function uses logistic regression to estimate \eqn{Pr(Y=1\mid{X=0,Z})}{Pr(Y=1|X=0,Z)}, and the marginal sample distribution of \code{Z}
-#' to approximate the outer expectation (Sjolander and Vansteelandt, 2012).
+#' to approximate the outer expectation (\enc{Sjölander}{Sjolander} and Vansteelandt, 2012).
 #' If \code{clusterid} is supplied, then a clustered sandwich formula is used in all variance calculations.
-#' @author Elisabeth Dahlqwist, Arvid Sjolander
+#' @author Elisabeth Dahlqwist, Arvid \enc{Sjölander}{Sjolander}
 #' @seealso \code{\link{glm}} used for fitting the logistic regression model.
 #' @references Greenland, S. and Drescher, K. (1993). Maximum Likelihood Estimation of the Attributable Fraction from logistic Models. \emph{Biometrics} \bold{49}, 865-872.
-#' @references Sjolander, A. and Vansteelandt, S. (2011). Doubly robust estimation of attributable fractions. \emph{Biostatistics} \bold{12}, 112-121.
+#' @references \enc{Sjölander}{Sjolander}, A. and Vansteelandt, S. (2011). Doubly robust estimation of attributable fractions. \emph{Biostatistics} \bold{12}, 112-121.
 #' @examples
 #' # Simulate a cross-sectional sample
 #' expit <- function(x) 1 / (1 + exp( - x))
@@ -56,9 +55,11 @@ is.binary <- function(v) {
 #' AF.est.cs.clust <- AF.cs(formula = Y ~ X + Z + X * Z, data = data,
 #'                          exposure = "X", clusterid = "id")
 #' summary(AF.est.cs.clust)
-#' @import stats
+#' @importFrom stats aggregate ave binomial coef delete.response family glm model.matrix pnorm predict qnorm residuals stepfun terms var vcov
 #' @export
 AF.cs<- function(formula, data, exposure, clusterid){
+  call <- match.call()
+  mm <- match(c("formula", "data", "exposure", "clusterid"), names(call), 0L)
   #### Preparation of dataset ####
   ## Delete rows with missing on variables in the model ##
   rownames(data) <- 1:nrow(data)
@@ -133,7 +134,7 @@ AF.cs<- function(formula, data, exposure, clusterid){
   P0.var <- sandwich[2, 2]
   #### Output ####
   out <- c(list(AF.est = AF.est, AF.var = AF.var, P.est = P.est, P0.est = P0.est, P.var = P.var,
-                P0.var = P0.var, call = fit$call, exposure = exposure, outcome = outcome,
+                P0.var = P0.var, fitcall = fit$call, call = call, exposure = exposure, outcome = outcome,
                 fit = fit, sandwich = sandwich, gradient = gradient, formula = formula,
                 n = n, n.cases = n.cases, n.cluster = n.cluster))
   class(out) <- "AF"
@@ -164,11 +165,11 @@ AF.cs<- function(formula, data, exposure, clusterid){
 #' the exposure would have been eliminated from the population at baseline and \eqn{S(t)} denotes the factual survival function.
 #' If \code{Z} is sufficient for confounding control, then \eqn{S_0(t)}{S0(t)} can be expressed as \eqn{E_Z\{S(t\mid{X=0,Z })\}}{E_z{S(t|X=0,Z)}}.
 #' The function uses Cox proportional hazards regression to estimate \eqn{S(t\mid{X=0,Z})}{S(t|X=0,Z)}, and the marginal sample distribution of \code{Z}
-#' to approximate the outer expectation (Sjolander and Vansteelandt, 2014).  If \code{clusterid} is supplied, then a clustered sandwich formula is used in all variance calculations.
-#' @author Elisabeth Dahlqwist, Arvid Sjolander
+#' to approximate the outer expectation (\enc{Sjölander}{Sjolander} and Vansteelandt, 2014).  If \code{clusterid} is supplied, then a clustered sandwich formula is used in all variance calculations.
+#' @author Elisabeth Dahlqwist, Arvid \enc{Sjölander}{Sjolander}
 #' @seealso \code{\link[survival]{coxph}} and \code{\link[survival]{Surv}} used for fitting the Cox proportional hazards model.
 #' @references Chen, L., Lin, D. Y., and Zeng, D. (2010). Attributable fraction functions for censored event times. \emph{Biometrika} \bold{97}, 713-726.
-#' @references Sjolander, A. and Vansteelandt, S. (2014). Doubly robust estimation of attributable fractions in survival analysis. \emph{Statistical Methods in Medical Research}. doi: 10.1177/0962280214564003.
+#' @references \enc{Sjölander}{Sjolander}, A. and Vansteelandt, S. (2014). Doubly robust estimation of attributable fractions in survival analysis. \emph{Statistical Methods in Medical Research}. doi: 10.1177/0962280214564003.
 #' @examples
 #' # Simulate a sample from a cohort sampling design with time-to-event outcome
 #' expit <- function(x) 1 / (1 + exp( - x))
@@ -199,8 +200,10 @@ AF.cs<- function(formula, data, exposure, clusterid){
 #' plot(AF.est.ch.clust, CI = TRUE)
 #' @import survival
 #' @export
-AF.ch<- function(formula, data, exposure, ties="breslow",
-                 times, clusterid){
+AF.ch <- function(formula, data, exposure, ties="breslow",
+                  times, clusterid){
+  call <- match.call()
+  mm <- match(c("formula", "data", "exposure", "ties", "times", "clusterid"), names(call), 0L)
   #### Preparation of dataset ####
   ## Delete rows with missing on variables in the model ##
   rownames(data) <- 1:nrow(data)
@@ -242,8 +245,8 @@ AF.ch<- function(formula, data, exposure, ties="breslow",
   npar <- length(fit$coef)
   fit.detail <- coxph.detail(object = fit)
   ## Design matrices ##
-  design <- model.matrix(object = delete.response(terms(fit)), data = data)[, -1]
-  design0 <- model.matrix(object = delete.response(terms(fit)), data = data0)[, -1]
+  design <- as.matrix(model.matrix(object = delete.response(terms(fit)), data = data)[, -1])
+  design0 <- as.matrix(model.matrix(object = delete.response(terms(fit)), data = data0)[, -1])
   ### Estimate the survival functions ###
   ## Hazard increment ##
   dH0 <- fit.detail$hazard
@@ -262,7 +265,7 @@ AF.ch<- function(formula, data, exposure, ties="breslow",
   score.beta <- residuals(object = fit, type = "score")
   ## Weighted mean of the variable at event for all at risk at that time ##
   E <- matrix(0, nrow = n, ncol = npar)
-  means <- fit.detail$means
+  means <- as.matrix(fit.detail$means)
   means <- means[rep(1:nrow(means), fit.detail$nevent), ] #handle ties
   E[data[, eventvar] == 1, ] <- means
   #E[data[, eventvar] == 1, ] <- fit.detail$means
@@ -319,9 +322,10 @@ AF.ch<- function(formula, data, exposure, ties="breslow",
   ### The AF function estimate ###
   AF.est <- 1 - (1 - S0.est) / (1 - S.est)
   #### Output ####
+  func <- AF.cc
   out <- c(list(AF.est = AF.est, AF.var = AF.var, S.est = S.est,
                 S0.est = S0.est, S.var = S.var, S0.var = S0.var,
-                call = fit$call, exposure = exposure, outcome = eventvar, fit = fit,
+                fitcall = fit$call, call = call, exposure = exposure, outcome = eventvar, fit = fit,
                 sandwich = sandwich, gradient = gradient, formula = formula,
                 n = n, n.cases = n.cases, n.cluster = n.cluster,  times = times))
   class(out) <- "AF"
@@ -363,7 +367,7 @@ AF.ch<- function(formula, data, exposure, ties="breslow",
 #' \deqn{ AF \approx 1 - E_Z\{OR^{-X}(Z)\mid{Y = 1}\}.}{AF is approximately 1 - E_z{OR^{-X}(Z) | Y = 1}.}
 #' The odds ratio is estimated by logistic regression or conditional logistic regression.
 #' If \code{clusterid} is supplied, then a clustered sandwich formula is used in all variance calculations.
-#' @author Elisabeth Dahlqwist, Arvid Sjolander
+#' @author Elisabeth Dahlqwist, Arvid \enc{Sjölander}{Sjolander}
 #' @seealso \code{\link[stats]{glm}} and \code{\link[drgee]{gee}} used for fitting the logistic regression model (for non-matched case-control) and the conditional logistic regression model (for matched case-control).
 #' @references Bruzzi, P., Green, S. B., Byar, D., Brinton, L. A., and Schairer, C. (1985). Estimating the population attributable risk for multiple risk factors using case-control data. \emph{American Journal of Epidemiology} \bold{122}, 904-914.
 #' @examples
@@ -412,6 +416,8 @@ AF.ch<- function(formula, data, exposure, ties="breslow",
 #' @export
 AF.cc<-function(formula, data, exposure, clusterid,
                 matched = FALSE){
+  call <- match.call()
+  mm <- match(c("formula", "data", "exposure", "clusterid", "matched"), names(call), 0L)
   #### Preparation of dataset ####
   ## Delete rows with missing on variables in the model ##
   rownames(data) <- 1:nrow(data)
@@ -420,19 +426,18 @@ AF.cc<-function(formula, data, exposure, clusterid,
   data <- data[complete, ]
   outcome <- as.character(terms(formula)[[2]])
   if(matched == TRUE){
-  ni.vals <- ave(as.vector(data[, outcome]), data[, clusterid], FUN = function(y) {
-    length(unique(y[which(!is.na(y))]))
-  })
-  compl.rows <- (ni.vals > 1)
-  data <- data[compl.rows, ]
+    ni.vals <- ave(as.vector(data[, outcome]), data[, clusterid], FUN = function(y) {
+      length(unique(y[which(!is.na(y))]))
+    })
+    compl.rows <- (ni.vals > 1)
+    data <- data[compl.rows, ]
   }
-
   ## Checks ##
   if(is.binary(data[, outcome]) == FALSE)
     stop("Only binary outcome (0/1) is accepted.", call. = FALSE)
   if(is.binary(data[, exposure]) == FALSE)
     stop("Only binary exposure (0/1) is accepted.", call. = FALSE)
-  if(!as.numeric(summary(all.vars(formula[[3]]) == exposure)[3]) == 1)
+  if(max(all.vars(formula[[3]]) == exposure) == 0)
     stop("The exposure variable is not included in the formula.", call. = FALSE)
   if(missing(clusterid)) n.cluster <- 0
   else n.cluster <- length(unique(data[, clusterid]))
@@ -451,12 +456,12 @@ AF.cc<-function(formula, data, exposure, clusterid,
   npar <- length(fit$coef)
   ## Design matrices ##
   if(matched == FALSE){
-    design <- model.matrix(object = delete.response(terms(fit)), data = data)
-    design0 <- model.matrix(object = delete.response(terms(fit)), data = data0)
+    design <- as.matrix(model.matrix(object = delete.response(terms(fit)), data = data))
+    design0 <- as.matrix(model.matrix(object = delete.response(terms(fit)), data = data0))
   }
   if(matched == TRUE){
-    design <- model.matrix(object = formula, data = data )[, - 1]
-    design0 <- model.matrix(object = formula, data = data0)[, - 1]
+    design <- as.matrix(model.matrix(object = formula, data = data)[, - 1])
+    design0 <- as.matrix(model.matrix(object = formula, data = data0)[, - 1])
   }
   ## Create linear predictors to estimate the log odds ratio ##
   diff.design <- design0 - design
@@ -483,11 +488,21 @@ AF.cc<-function(formula, data, exposure, clusterid,
   ## Hessian of score equation 1 ##
   #### Estimating variance using Sandwich estimator ####
   hessian.AF1 <- - data[, outcome]
+
+
   hessian.AF2 <- (design0 - design) * as.vector(data[, outcome] * exp( - log.or))
-  if (!missing(clusterid))
-    hessian.AF <- cbind(mean(aggregate(hessian.AF1, list(data[, clusterid]), sum)[, - 1], na.rm=TRUE)
-                        , t(colMeans(aggregate(hessian.AF2
-                                               , list(data[, clusterid]), sum)[, - 1], na.rm = TRUE)))
+  if (!missing(clusterid)){
+    if(length(all.vars(formula[[3]]))>1){
+      hessian.AF <- cbind(mean(aggregate(hessian.AF1, list(data[, clusterid]), sum)[, - 1], na.rm=TRUE)
+                          , t(colMeans(aggregate(hessian.AF2
+                                                 , list(data[, clusterid]), sum)[, - 1], na.rm = TRUE)))
+    }
+    if(length(all.vars(formula[[3]]))==1){
+      hessian.AF <- cbind(mean(aggregate(hessian.AF1, list(data[, clusterid]), sum)[, - 1], na.rm=TRUE)
+                          , t(mean(aggregate(hessian.AF2
+                                             , list(data[, clusterid]), sum)[, - 1], na.rm = TRUE)))
+    }
+  }
   else
     hessian.AF <- cbind(mean(hessian.AF1), t(colMeans(hessian.AF2, na.rm = TRUE)))
   hessian.beta <- cbind(matrix(rep(0, npar), nrow = npar, ncol = 1), - solve(vcov(object = fit)) / n)
@@ -501,7 +516,7 @@ AF.cc<-function(formula, data, exposure, clusterid,
   AF.var <- sandwich[1, 1]
   #### Output ####
   out <- c(list(AF.est = AF.est, AF.var = AF.var, log.or = log.or,
-                call = fit$call, exposure = exposure, outcome = outcome, fit = fit,
+                fitcall = fit$call, call = call, exposure = exposure, outcome = outcome, fit = fit,
                 sandwich = sandwich, formula = formula,
                 n = n, n.cases = n.cases, n.cluster = n.cluster))
   class(out) <- "AF"
@@ -529,10 +544,10 @@ print.AF<-function(x, ...){
   if(modelcall == "coxph") {
     table.est <- cbind(x$times, table.est)
     colnames(table.est) <- c("Time", "AF", Std.Error)
-    print.default(table.est, ...)
+    print.default(table.est)
   }
   else {
-    print.default(table.est, ...)
+    print.default(table.est)
   }
 }
 
@@ -561,7 +576,7 @@ CI <- function(AF, Std.Error, confidence.level, CI.transform){
 #' @param CI.transform user-specified transformation of the Wald confidence interval(s). Options are \code{untransformed}, \code{log} and \code{logit}. If not specified untransformed will be calculated.
 #' @param digits maximum number of digits.
 #' @param ... further arguments to be passed to the summary function. See \code{\link[base]{summary}}.
-#' @author Elisabeth Dahlqwist, Arvid Sjolander
+#' @author Elisabeth Dahlqwist, Arvid \enc{Sjölander}{Sjolander}
 #' @export
 summary.AF <- function(object, digits = max(3L, getOption("digits") - 3L),
                        confidence.level, CI.transform, ...){
@@ -592,14 +607,14 @@ summary.AF <- function(object, digits = max(3L, getOption("digits") - 3L),
                 CI.transform = CI.transform, confidence.level = confidence.level,
                 confidence.interval = confidence.interval, n.obs = object$n,
                 n.cases = object$n.cases, n.cluster = object$n.cluster,
-                modelcall = modelcall, method = method, formula = object$formula,
+                modelcall = modelcall, call = object$call, method = method, formula = object$formula,
                 exposure = object$exposure, outcome = object$outcome, fit = fit,
                 sandwich = object$sandwich)
   }
   else{
     ans <- list(AF = AF, CI.transform = CI.transform, confidence.level = confidence.level,
                 confidence.interval = confidence.interval, n.obs = object$n, n.cases = object$n.cases,
-                n.cluster = object$n.cluster, modelcall = modelcall, method = method,
+                n.cluster = object$n.cluster, modelcall = modelcall, call = object$call, method = method,
                 formula = object$formula, exposure = object$exposure, outcome = object$outcome,
                 fit = fit, sandwich = object$sandwich)
   }
@@ -610,6 +625,8 @@ summary.AF <- function(object, digits = max(3L, getOption("digits") - 3L),
 #' @export
 print.summary.AF <- function(x, digits = max(3L, getOption("digits") - 3L),
                              ...){
+  cat("Call: ", "\n")
+  print.default(x$call)
   if(!x$n.cluster == 0) Std.Error <- "Robust SE"
   else Std.Error <- "Std.Error"
   if(x$CI.transform == "log") x$CI.transform <- "log transformed"
@@ -666,8 +683,8 @@ print.summary.AF <- function(x, digits = max(3L, getOption("digits") - 3L),
 #' @param xlab label on the x-axis. If not specified the label \emph{"Time"} will be displayed.
 #' @param main main title of the plot. If not specified the lable \emph{"Estimate of the attributable fraction function"} will be displayed.
 #' @param ... further arguments to be passed to the plot function. See \code{\link[graphics]{plot}}.
-#' @author Elisabeth Dahlqwist, Arvid Sjolander
-#' @import graphics
+#' @author Elisabeth Dahlqwist, Arvid \enc{Sjölander}{Sjolander}
+#' @importFrom graphics legend lines plot.default
 #' @export
 plot.AF <- function(x, CI = FALSE, confidence.level,
                     CI.transform, xlab, main, ...){
@@ -692,7 +709,7 @@ plot.AF <- function(x, CI = FALSE, confidence.level,
     if(CI.transform == "log") transform <- "(log transformed)"
     if(CI.transform == "logit") transform <- "(logit transformed)"
     if(CI.transform == "untransformed") transform <- "(untransformed)"
-    legend("topright", legend = c("AF estimate", CI, transform), pch = c(19, NA, NA),
-           lty = c(1, 2, 0), bty = "n")
+    legend("topright", legend = c("AF estimate", CI, transform), pch = c(19, NA, NA), lty = c(1, 2, 0), bty = "n")
   }
 }
+
