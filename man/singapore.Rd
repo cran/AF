@@ -19,10 +19,6 @@
 
 \strong{The following changes have been made to the data from the original data in De Jong UW (1974):}
 
-- The variable "\code{CC}" is recoded into the numeric indicator variable "\code{Oesophagealcancer}":
-
-\code{singapore$Oesophagealcancer <- ifelse(singapore$CC > 1, 0, 1)}
-
 - The variable "\code{Bev}" is recoded into the numeric indicator variable "\code{Everhotbev}":
 
 \code{singapore$Everhotbev <- ifelse(singapore$Bev >= 1, 1, 0)}}
@@ -35,6 +31,6 @@ This dataset is borrowed from "Aetiological factors in oesophageal cancer in Sin
 \references{
 De Jong UW, Breslow N, Hong JG, Sridharan M, Shanmugaratnam K. (1974). Aetiological factors in oesophageal cancer in Singapore Chinese. \emph{Int J Cancer} Mar 15;13(3), 291-303.
 
-\url{http://faculty.washington.edu/norm/datasets.html}
+\url{http://faculty.washington.edu/heagerty/Courses/b513/WEB2002/datasets.html}
 }
 

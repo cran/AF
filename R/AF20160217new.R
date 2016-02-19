@@ -1,4 +1,5 @@
 ############## Common functions ##############
+globalVariables(".SD")
 is.binary <- function(v) {
   x <- unique(v)
   if((length(x) - sum(is.na(x)) == 2L) & (max(x) == 1 & min(x) == 0)) TRUE
@@ -198,7 +199,7 @@ AF.cs<- function(formula, data, exposure, clusterid){
 #'                          exposure = "X", times = time, clusterid = "id")
 #' summary(AF.est.ch.clust)
 #' plot(AF.est.ch.clust, CI = TRUE)
-#' @import survival
+#' @import survival data.table
 #' @export
 AF.ch <- function(formula, data, exposure, ties="breslow",
                   times, clusterid){
@@ -275,7 +276,7 @@ AF.ch <- function(formula, data, exposure, ties="breslow",
   AF.var <- vector(length = length(times))
   S.var <- vector(length = length(times))
   S0.var <- vector(length = length(times))
-
+  
   # Loop over all t in times
   for (i in 1:length(times)){
     t <- times[i]
@@ -290,8 +291,13 @@ AF.ch <- function(formula, data, exposure, ties="breslow",
     ### Meat ###
     score.equations <- cbind(score.S, score.S0, score.H0, score.beta)
     if (!missing(clusterid)){
-      score.equations <- aggregate(score.equations, by = list(data[, clusterid]), sum)[, - 1]
+      #score.equations <-aggregate(score.equations, by = list(data[, clusterid]), sum)[, - 1]
+      score.equations <- data.table(score.equations)
+      score.equations <- score.equations[, j=lapply(.SD,sum), by=clusterid]
+      score.equations <- as.matrix(score.equations)
+      score.equations <- score.equations[, -1]
     }
+    
     meat <- var(score.equations, na.rm = TRUE)
     #### Bread: hessian of score equations ####
     ## Hessian of score equation 1 ##
@@ -322,7 +328,7 @@ AF.ch <- function(formula, data, exposure, ties="breslow",
   ### The AF function estimate ###
   AF.est <- 1 - (1 - S0.est) / (1 - S.est)
   #### Output ####
-  func <- AF.cc
+  #func <- AF.cc
   out <- c(list(AF.est = AF.est, AF.var = AF.var, S.est = S.est,
                 S0.est = S0.est, S.var = S.var, S0.var = S0.var,
                 fitcall = fit$call, call = call, exposure = exposure, outcome = eventvar, fit = fit,
@@ -488,8 +494,8 @@ AF.cc<-function(formula, data, exposure, clusterid,
   ## Hessian of score equation 1 ##
   #### Estimating variance using Sandwich estimator ####
   hessian.AF1 <- - data[, outcome]
-
-
+  
+  
   hessian.AF2 <- (design0 - design) * as.vector(data[, outcome] * exp( - log.or))
   if (!missing(clusterid)){
     if(length(all.vars(formula[[3]]))>1){
@@ -589,19 +595,19 @@ summary.AF <- function(object, digits = max(3L, getOption("digits") - 3L),
                             confidence.level = confidence.level,
                             CI.transform = CI.transform)
   colnames(confidence.interval) <- c("Lower limit", "Upper limit")
-
+  
   if(!object$n.cluster == 0) Std.Error <- "Robust SE"
   else Std.Error <- "Std.Error"
   AF <- cbind(object$AF.est, se, zvalue, pvalue)
   colnames(AF) <- c("AF estimate", Std.Error, "z value", "Pr(>|z|)")
-
+  
   modelcall <- as.character(object$fit$call[1])
   if(modelcall == "glm") method = "Logistic regression"
-  if(modelcall == "coxph") method = "Cox Proportional Hazard model"
+  if(modelcall == "coxph") method = "Cox Proportional Hazards model"
   if(modelcall == "gee") method = "Conditional logistic regression"
-
+  
   fit <- summary(object$fit)
-
+  
   if(modelcall == "coxph"){
     ans <- list(AF = AF, times = object$times,
                 CI.transform = CI.transform, confidence.level = confidence.level,
@@ -651,12 +657,12 @@ print.summary.AF <- function(x, digits = max(3L, getOption("digits") - 3L),
     print.default(table.est)
   }
   cat("\nExposure", ":", x$exposure, "\n")
-
+  
   if(x$modelcall == "coxph") outcome <- "Event   "
   else outcome <- "Outcome "
   #cat("\n")
   cat(outcome, ":", x$outcome, "\n")
-
+  
   cat("\n")
   table.nr <- cbind(x$n.obs, x$n.cases)
   rownames(table.nr) <- c("")
