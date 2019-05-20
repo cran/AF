@@ -66,6 +66,7 @@
 #' @importFrom stats model.extract model.frame
 #' @export
 AFparfrailty <- function(object, data, exposure, times, clusterid){
+  call <- match.call()
   formula <- object$formula
   npar <- length(object$est)
 
@@ -194,7 +195,7 @@ AFparfrailty <- function(object, data, exposure, times, clusterid){
 
   out <- c(list(AF.est = AF.est, AF.var = AF.var, S.est = S.est,
                 S0.est = S0.est, S.var = S.var, S0.var = S0.var,
-                objectcall = object$call, exposure = exposure, outcome = outcome, object = object,
+                objectcall = object$call, call = call, exposure = exposure, outcome = outcome, object = object,
                 sandwich = sandwich, gradient = gradient, formula = formula,
                 n = n, n.cases = n.cases, n.cluster = n.cluster,  times = times))
   class(out) <- "AF"

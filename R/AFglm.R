@@ -141,6 +141,8 @@ AFglm <- function(object, data, exposure, clusterid, case.control = FALSE){
   }
 
   ## Checks ##
+  if(!class(exposure) == "character") 
+    stop("Exposure must be a string.", call. = FALSE)
   if(!is.binary(data[, exposure]))
     stop("Only binary exposure (0/1) is accepted.", call. = FALSE)
   if(max(all.vars(formula[[3]]) == exposure) == 0)

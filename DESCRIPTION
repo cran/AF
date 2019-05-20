@@ -1,24 +1,22 @@
 Package: AF
-Type: Package
 Title: Model-Based Estimation of Confounder-Adjusted Attributable
         Fractions
-Version: 0.1.4
-Date: 2017-02-06
-Author: Elisabeth Dahlqwist and Arvid Sjölander
-Maintainer: Elisabeth Dahlqwist <elisabeth.dahlqwist@ki.se>
+Version: 0.1.5
+Author: Elisabeth Dahlqwist and Arvid Sjolander
+Maintainer: Elisabeth Dahlqwist <elisabeth.dahlqwist88@gmail.com>
 Description: Estimates the attributable fraction in different sampling designs
     adjusted for measured confounders using logistic regression (cross-sectional
     and case-control designs), conditional logistic regression (matched case-control
     design), Cox proportional hazard regression (cohort design with time-to-
-    event outcome) and gamma-frailty model with a Weibull baseline hazard. The variance of the estimator is obtained by combining the delta
-    method with the the sandwich formula. Dahlqwist et al.(2016) <doi:10.1007/s10654-016-0137-7>.
+    event outcome), gamma-frailty model with a Weibull baseline hazard and instrumental variables analysis.
+    An exploration of the AF with a genetic exposure can be found in the package 'AFheritability' Dahlqwist E et al. (2019) <doi:10.1007/s00439-019-02006-8>.
 License: GPL-2 | GPL-3
-LazyData: TRUE
-Depends: stats, base, graphics, survival, drgee, stdReg, R (>= 3.3.1),
-        data.table
 Encoding: UTF-8
-RoxygenNote: 6.0.0
+LazyData: true
+Depends: stats, base, graphics, survival, drgee, stdReg, R (>= 3.5.0),
+        data.table, ivtools
+RoxygenNote: 6.1.1
 NeedsCompilation: no
-Packaged: 2017-02-10 12:47:41 UTC; elidah
+Packaged: 2019-05-20 08:21:41 UTC; elidah
 Repository: CRAN
-Date/Publication: 2017-02-11 00:42:31
+Date/Publication: 2019-05-20 18:00:10 UTC

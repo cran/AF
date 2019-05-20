@@ -70,7 +70,7 @@
 AFclogit<-function(object, data, exposure, clusterid){
   call <- match.call()
   # Warning if the object is not a clogit object
-  objectcall <- object$userCall[1]
+  objectcall <- object$userCall
   if(!(class(object)[1])=="clogit")
     stop("The object is not a clogit object", call. = FALSE)
   if(missing(clusterid))
@@ -80,10 +80,12 @@ AFclogit<-function(object, data, exposure, clusterid){
   npar <- length(object$coef)
 
   ## Delete rows with missing on variables in the model ##
-  rownames(data) <- 1:nrow(data)
-  m <- model.matrix(object = formula, data = data)
-  complete <- as.numeric(rownames(m))
-  data <- data[complete, ]
+  #rownames(data) <- 1:nrow(data)
+  #m <- model.matrix(object = formula, data = data)
+  #complete <- as.numeric(rownames(m))
+  #data <- data[complete, ]
+  #data <- complete_cases(data, formula)
+  
   outcome <- as.character(terms(formula)[[2]])[3]
   variables <- attr(object$coefficients, "names")
   ## Create a formula which can be used to create a design matrix
@@ -133,7 +135,7 @@ AFclogit<-function(object, data, exposure, clusterid){
                                            y = data[, outcome],
                                            x = design,
                                            id = clusters)
-
+  
   if(missing(pred.diff)) warning("Use the latest version of package 'drgee'", call. = FALSE)
   score.beta <- pred.diff$U
   score.equations <- cbind(score.AF, score.beta)
@@ -151,12 +153,12 @@ AFclogit<-function(object, data, exposure, clusterid){
   hessian.beta <- cbind(matrix(rep(0, npar), nrow = npar, ncol = 1), pred.diff$dU.sum / n)
   ### Bread ###
   bread <- rbind(hessian.AF, hessian.beta)
-
+  
   #### Sandwich ####
   sandwich <- (solve (bread) %*% meat %*% t(solve (bread)) * n.cluster/ n ^ 2 )
-
+  
   AF.var <- sandwich[1, 1]
-
+  
   #### Output ####
   out <- c(list(hessian.beta = hessian.beta, hessian.AF = hessian.AF, clusterid = clusterid,
                 score.equations = score.equations, hessian.beta = hessian.beta, bread = bread,
@@ -164,7 +166,8 @@ AFclogit<-function(object, data, exposure, clusterid){
                 objectcall = objectcall, call = call, exposure = exposure, outcome = outcome,
                 object = object, sandwich = sandwich, formula = formula, n = n, n.cases = n.cases,
                 n.cluster = n.cluster))
-
+  
   class(out) <- "AF"
   return(out)
+
 }

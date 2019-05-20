@@ -1,5 +1,8 @@
 ############## Common functions ##############
 globalVariables(".SD")
+
+plogis <- stats::plogis
+
 is.binary <- function(v) {
 
   x <- unique(v)
@@ -14,6 +17,38 @@ aggr <- function(x, clusters){
   temp <- data.table(x)
   temp <- as.matrix(temp[, j = lapply(.SD, sum), by = clusters])[, -1]
 
+}
+
+######### Remove missing 
+expand <- function(x, names){
+  n <- length(names)
+  if(is.vector(x)){
+    temp <- rep(NA, n)
+    names(temp) <- names
+    mm <- match(names(temp), names(x))
+    vv <- !is.na(mm)
+    mm <- mm[vv]
+    temp[vv] <- x[mm]
+  }
+  if(is.matrix(x)){
+    temp <- matrix(NA, nrow=n, ncol=ncol(x))
+    rownames(temp) <- names
+    colnames(temp) <- colnames(x)
+    mm <- match(rownames(temp), rownames(x))
+    vv <- !is.na(mm)
+    mm <- mm[vv]
+    temp[vv, ] <- x[mm, ]
+    
+  }
+  return(temp)  
+} 
+
+deriv_matrix <- function(m1, m2, n, npar, npsi){
+  a1 <- aperm(array(m1, c(n, npar, npsi)), c(1, 3, 2))
+  a2 <- array(m2, c(n, npsi, npar))
+  a <- a1 * a2
+  out <- list(a1 = a1, a2 = a2, a = a)
+  return(out)
 }
 
 ############## Summary and print functions ##############
@@ -64,7 +99,7 @@ CI.AF <- function(AF, Std.Error, confidence.level, CI.transform){
 
 #' @title Summary function for objects of class "\code{AF}".
 #' @description Gives a summary of the AF estimate(s) including z-value, p-value and confidence interval(s).
-#' @param object an object of class \code{AF} from \code{\link{AFglm}}, \code{\link{AFcoxph}} or \code{\link{AFclogit}} functions.
+#' @param object an object of class \code{AF} from \code{\link{AFglm}}, \code{\link{AFcoxph}}, \code{\link{AFclogit}}, \code{\link{AFparfrailty}} or \code{\link{AFivglm}} functions.
 #' @param confidence.level user-specified confidence level for the confidence intervals. If not specified it defaults to 95 percent. Should be specified in decimals such as 0.95 for 95 percent.
 #' @param CI.transform user-specified transformation of the Wald confidence interval(s). Options are \code{untransformed}, \code{log} and \code{logit}. If not specified untransformed will be calculated.
 #' @param digits maximum number of digits.
@@ -80,39 +115,48 @@ summary.AF <- function(object, digits = max(3L, getOption("digits") - 3L),
   zvalue <- object$AF.est / sqrt(object$AF.var)
   pvalue <- 2 * pnorm( - abs(zvalue))
   confidence.interval <- CI.AF(AF = object$AF.est, Std.Error = se,
-                            confidence.level = confidence.level,
-                            CI.transform = CI.transform)
+                               confidence.level = confidence.level,
+                               CI.transform = CI.transform)
   colnames(confidence.interval) <- c("Lower limit", "Upper limit")
-
+  
   if(!object$n.cluster == 0) Std.Error <- "Robust SE"
-      else Std.Error <- "Std.Error"
+  else Std.Error <- "Std.Error"
   AF <- cbind(object$AF.est, se, zvalue, pvalue)
   colnames(AF) <- c("AF estimate", Std.Error, "z value", "Pr(>|z|)")
-
+  
   modelcall <- as.character(object$objectcall[1])
   if(modelcall == "glm") method = "Logistic regression"
   if(modelcall == "coxph") method = "Cox Proportional Hazards model"
   if(modelcall == "gee") method = "Conditional logistic regression"
   if(modelcall == "clogit") method = "Conditional logistic regression"
   if(modelcall == "parfrailty") method = "Weibull gamma-frailty model"
-
-  if(modelcall == "coxph"  |  modelcall == "parfrailty"){
+  if(modelcall == "ivglm") modelcall = object$inputcall
+  if(modelcall == "g") method = "G-estimation"
+  if(modelcall == "ts") method = "Two Stage Least Square"
+  
+  if(modelcall == "coxph" | modelcall == "parfrailty"){
     ans <- list(AF = AF, times = object$times,
                 CI.transform = CI.transform, confidence.level = confidence.level,
                 confidence.interval = confidence.interval, n.obs = object$n,
                 n.cases = object$n.cases, n.cluster = object$n.cluster,
                 modelcall = modelcall, objectcall = object$objectcall, method = method, formula = object$formula,
                 exposure = object$exposure, outcome = object$outcome, object = object,
-                sandwich = object$sandwich, Std.Error = se, times = object$times)
-  }
-  else{
-    ans <- list(AF = AF, times = object$times,
-                CI.transform = CI.transform, confidence.level = confidence.level,
+                sandwich = object$sandwich, Std.Error = se, times = object$times, call = object$call)
+  } else if(modelcall == "g"| modelcall == "ts"){
+    ans <- list(AF = AF, CI.transform = CI.transform, confidence.level = confidence.level,
                 confidence.interval = confidence.interval, n.obs = object$n,
                 n.cases = object$n.cases, n.cluster = object$n.cluster,
-                modelcall = modelcall, objectcall = object$objectcall, method = method, formula = object$formula,
-                exposure = object$exposure, outcome = object$outcome, object = object,
-                sandwich = object$sandwich, Std.Error = se)
+                modelcall = modelcall, objectcall = object$objectcall, link = object$link, method = method,
+                formula = object$formula, exposure = object$exposure, outcome = object$outcome,
+                object = object, sandwich = object$sandwich, Std.Error = se, formula = object$formula,
+                psi = object$psi, fitY = object$fitY, fitZ = object$fitZ, call = object$call, inputcall = object$inputcall)
+  } else{
+    ans <- list(AF = AF, CI.transform = CI.transform, confidence.level = confidence.level,
+                confidence.interval = confidence.interval, n.obs = object$n,
+                n.cases = object$n.cases, n.cluster = object$n.cluster,
+                modelcall = modelcall, objectcall = object$objectcall, method = method,
+                formula = object$formula, exposure = object$exposure, outcome = object$outcome,
+                object = object, sandwich = object$sandwich, Std.Error = se, call = object$call)
   }
   class(ans) <- "summary.AF"
   return(ans)
@@ -122,7 +166,7 @@ summary.AF <- function(object, digits = max(3L, getOption("digits") - 3L),
 print.summary.AF <- function(x, digits = max(3L, getOption("digits") - 3L),
                              ...){
   cat("Call: ", "\n")
-  print.default(x$objectcall)
+  print.default(x$call)
   if(!x$n.cluster == 0) Std.Error <- "Robust SE"
   else Std.Error <- "Std.Error"
   if(x$CI.transform == "log") x$CI.transform <- "log transformed"
@@ -146,12 +190,12 @@ print.summary.AF <- function(x, digits = max(3L, getOption("digits") - 3L),
     print.default(table.est)
   }
   cat("\nExposure", ":", x$exposure, "\n")
-
+  
   if(x$modelcall == "coxph" | x$modelcall == "parfrailty") outcome <- "Event   "
   else outcome <- "Outcome "
   #cat("\n")
   cat(outcome, ":", x$outcome, "\n")
-
+  
   cat("\n")
   table.nr <- cbind(x$n.obs, x$n.cases)
   rownames(table.nr) <- c("")
@@ -164,16 +208,46 @@ print.summary.AF <- function(x, digits = max(3L, getOption("digits") - 3L),
     colnames(table.nr.cluster) <- c("Observations", number, "Clusters")
     print.default(table.nr.cluster)
   }
-  cat("\nMethod for confounder adjustment: ", x$method, "\n")
-  formula <- as.character(x$formula)
-  cat("\nFormula: ", formula[2], formula[1], formula[3], "\n")
-
+  if(x$modelcall == "g"){
+    cat("\nMethod for confounder adjustment: G-estimation with", x$link, "-link", "\n")
+    target <- ifelse(x$link == "log", "Causal Risk Ratio:", "Causal Odds Ratio:")
+    est <- ifelse(x$link == "log", exp(x$psi), exp(x$psi))
+    Target_param <- paste("\n", target, sep="")
+    cat(Target_param, as.character(round(est, 2)), "\n")
+    cat("Call: ", "\n")
+    print.default(x$objectcall)
+    if(length(x$fitZ$coef) > 1){
+      cat("\nConfounder adjustment of the IV-outcome relationship:", "\n")
+      cat("Call: ", "\n")
+      print.default(x$fitZ$call)
+    }
+    if(length(x$psi) > 1){
+      cat("\nInteraction model for the IV-outcome confounders and exposure:", "\n")
+      cat("Call: ", "\n")
+      print.default(x$formula)
+    }
+    if(x$link == "logit"){
+      cat("\nAssociation model:", "\n")
+      cat("Call: ", "\n")
+      print.default(x$fitY$call)
+    }
+  }
+  else{ 
+    cat("\nMethod for confounder adjustment: ", x$method, "\n")
+    if(x$modelcall == "ts"){
+      Target_param <- paste("\n", "Causal Risk Ratio:", sep="")
+      cat(Target_param, as.character(round(exp(x$psi), 2)), "\n")
+    }
+    cat("Call: ", "\n")
+    print.default(x$objectcall)
+  }
+  
   return(table.est)
 }
 
-#' @title Plot function for objects of class "\code{AF}" from the function \code{AFcoxph} or \code{AF.ch}.
+#' @title Plot function for objects of class "\code{AF}" from the function \code{AFcoxph} or \code{AFparfrailty}.
 #' @description Creates a simple scatterplot for the AF function with time sequence (specified by the user as \code{times} in the \code{\link{AFcoxph}} function) on the x-axis and the AF function estimate on the y-axis.
-#' @param x an object of class \code{AF} from the \code{\link{AFcoxph}} function.
+#' @param x an object of class \code{AF} from the \code{\link{AFcoxph}} or \code{\link{AFparfrailty}} function.
 #' @param CI if TRUE confidence intervals are estimated and ploted in the graph.
 #' @param confidence.level user-specified confidence level for the confidence intervals. If not specified it defaults to 95 percent. Should be specified in decimals such as 0.95 for 95 percent.
 #' @param CI.transform user-specified transformation of the Wald confidence interval(s). Options are \code{untransformed}, \code{log} and \code{logit}. If not specified untransformed will be calculated.

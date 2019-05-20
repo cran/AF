@@ -8,7 +8,7 @@
   confidence.level, CI.transform, ...)
 }
 \arguments{
-\item{object}{an object of class \code{AF} from \code{\link{AFglm}}, \code{\link{AFcoxph}} or \code{\link{AFclogit}} functions.}
+\item{object}{an object of class \code{AF} from \code{\link{AFglm}}, \code{\link{AFcoxph}}, \code{\link{AFclogit}}, \code{\link{AFparfrailty}} or \code{\link{AFivglm}} functions.}
 
 \item{digits}{maximum number of digits.}
 

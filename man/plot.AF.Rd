@@ -2,13 +2,13 @@
 % Please edit documentation in R/AFfunctions.R
 \name{plot.AF}
 \alias{plot.AF}
-\title{Plot function for objects of class "\code{AF}" from the function \code{AFcoxph} or \code{AF.ch}.}
+\title{Plot function for objects of class "\code{AF}" from the function \code{AFcoxph} or \code{AFparfrailty}.}
 \usage{
-\method{plot}{AF}(x, CI = TRUE, confidence.level, CI.transform, xlab, main,
-  ylim, ...)
+\method{plot}{AF}(x, CI = TRUE, confidence.level, CI.transform, xlab,
+  main, ylim, ...)
 }
 \arguments{
-\item{x}{an object of class \code{AF} from the \code{\link{AFcoxph}} function.}
+\item{x}{an object of class \code{AF} from the \code{\link{AFcoxph}} or \code{\link{AFparfrailty}} function.}
 
 \item{CI}{if TRUE confidence intervals are estimated and ploted in the graph.}
 
